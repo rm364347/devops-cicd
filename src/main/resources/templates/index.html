@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projeto Acadêmico DevOps</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <h1>Pipeline CI/CD com Java + Maven + SonarQube</h1>
+        <p>
+            Aplicação web simples para demonstrar build, testes, análise de qualidade e deploy automatizado.
+        </p>
+
+        <form th:action="@{/deploy}" th:object="${messageRequest}" method="post">
+            <label for="message">Mensagem do deploy</label>
+            <input id="message" type="text" th:field="*{message}" placeholder="Ex.: versão 1.0 publicada"/>
+            <small class="error" th:if="${#fields.hasErrors('message')}" th:errors="*{message}"></small>
+            <button type="submit">Simular deploy</button>
+        </form>
+
+        <div class="result">
+            <strong>Resultado:</strong>
+            <span th:text="${result}"></span>
+        </div>
+
+        <div class="steps">
+            <h2>Etapas do pipeline</h2>
+            <ol>
+                <li>Build e testes automatizados com Maven</li>
+                <li>Análise estática de código com SonarQube</li>
+                <li>Empacotamento da imagem Docker</li>
+                <li>Deploy automatizado em ambiente alvo</li>
+            </ol>
+        </div>
+    </div>
+</div>
+</body>
+</html>

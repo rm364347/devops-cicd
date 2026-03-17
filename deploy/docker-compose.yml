@@ -1,0 +1,7 @@
+version: '3.9'
+services:
+  app:
+    image: devops-pipeline:latest
+    container_name: devops-pipeline
+    ports:
+      - "8080:8080"
