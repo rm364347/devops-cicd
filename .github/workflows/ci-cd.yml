@@ -1,18 +1,23 @@
-name: ci-cd-java-maven-github
+name: CI-CD
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
 
 jobs:
-  pipeline:
+  build-test-analyze-deploy:
     runs-on: ubuntu-latest
+
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Configurar Java 17
         uses: actions/setup-java@v4
@@ -21,77 +26,88 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Testes unitários
-        run: mvn -B -Dtest='*Test' test
-
-      - name: Testes de integração
-        run: mvn -B -Dtest='*IT' test
-
-      - name: Testes funcionais
-        run: mvn -B -Dtest='*FT' test
+      - name: Dar permissão aos scripts
+        run: chmod +x ./scripts/*.sh || true
 
       - name: Build da aplicação
-        run: mvn -B clean package -DskipTests
+        run: mvn -B clean compile
 
-      - name: Subir aplicação para smoke e performance
+      - name: Testes unitários
+        run: mvn -B test
+
+      - name: Testes de integração
+        run: mvn -B -Dtest=*IntegrationTest verify
+
+      - name: Testes funcionais
+        run: mvn -B -Dtest=*FunctionalTest verify
+
+      - name: Build do pacote
+        run: mvn -B package -DskipTests
+
+      - name: Subir aplicação para smoke test
         run: |
-          nohup java -jar target/devops-pipeline-1.0.0.jar --server.port=8081 > app.log 2>&1 &
+          nohup mvn spring-boot:run > app.log 2>&1 &
           echo $! > app.pid
+
+      - name: Aguardar aplicação iniciar
+        run: |
           for i in {1..30}; do
-            if curl -fsS http://localhost:8081/actuator/health > /dev/null; then
-              echo "Aplicação disponível"
+            if curl -fsS http://localhost:8080/actuator/health; then
+              echo "Aplicação iniciada com sucesso."
               exit 0
             fi
-            sleep 2
+            echo "Aguardando aplicação subir..."
+            sleep 10
           done
-          echo "Aplicação não iniciou a tempo"
+          echo "Aplicação não subiu no tempo esperado."
           cat app.log
           exit 1
 
       - name: Smoke tests
-        run: ./scripts/smoke-test.sh http://localhost:8081
-
-      - name: Configurar k6
-        uses: grafana/setup-k6-action@v1
+        run: ./scripts/smoke-test.sh
 
       - name: Testes de performance
-        run: k6 run tests/performance/smoke-load.js -e BASE_URL=http://localhost:8081
+        uses: grafana/setup-k6-action@v1
 
-      - name: Parar aplicação local
+      - name: Executar testes de performance
+        run: k6 run tests/performance/performance-test.js
+
+      - name: Análise SonarCloud
+        if: env.SONAR_TOKEN != ''
+        run: |
+          mvn -B verify sonar:sonar \
+            -Dsonar.projectKey=rm364347_devops_cicd \
+            -Dsonar.organization=rm364347-1
+
+      - name: Build da imagem Docker
+        run: docker build -t app-java-maven:latest .
+
+      - name: Deploy local de validação
+        if: github.ref == 'refs/heads/main'
+        run: |
+          docker rm -f app-java-maven || true
+          docker run -d --name app-java-maven -p 8080:8080 app-java-maven:latest
+
+      - name: Encerrar app iniciada para smoke test
         if: always()
         run: |
           if [ -f app.pid ]; then
             kill $(cat app.pid) || true
           fi
 
-      - name: Análise SonarQube
-        if: ${{ secrets.SONAR_TOKEN != 'ede1f4d6c5f1233308ff9c74dcafbd0607b33b74' && secrets.SONAR_HOST_URL != 'https://sonarcloud.io' }}
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        run: |
-          mvn -B verify sonar:sonar \
-            -Dsonar.projectKey=devops-pipeline \
-            -Dsonar.projectName=devops-pipeline \
-            -Dsonar.host.url=${SONAR_HOST_URL} \
-            -Dsonar.login=${SONAR_TOKEN}
+      - name: Publicar artefato JAR
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-jar
+          path: target/*.jar
 
-      - name: Build da imagem Docker
-        run: docker build -t devops-pipeline:latest .
-
-      - name: Deploy acadêmico com Docker
-        run: |
-          docker rm -f devops-pipeline || true
-          docker run -d --name devops-pipeline -p 8080:8080 devops-pipeline:latest
-          for i in {1..30}; do
-            if curl -fsS http://localhost:8080/actuator/health > /dev/null; then
-              echo "Deploy validado com sucesso"
-              exit 0
-            fi
-            sleep 2
-          done
-          docker logs devops-pipeline
-          exit 1
-
-      - name: Smoke pós-deploy
-        run: ./scripts/smoke-test.sh http://localhost:8080
+      - name: Publicar logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs
+          path: |
+            app.log
+            target/surefire-reports/
+            target/failsafe-reports/
