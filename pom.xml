@@ -21,6 +21,7 @@
         <jacoco.version>0.8.12</jacoco.version>
         <maven.surefire.plugin.version>3.5.2</maven.surefire.plugin.version>
         <sonar.organization>rm364347-1</sonar.organization>
+        <sonar.sources>src/main/java,src/main/resources</sonar.sources>
     </properties>
 
     <dependencies>
