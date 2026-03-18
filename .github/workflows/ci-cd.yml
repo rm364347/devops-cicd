@@ -24,8 +24,8 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Run Unit Tests
-        run: mvn -B test
+      - name: Run Unit Tests and Generate JaCoCo Report
+        run: mvn -B verify
 
       - name: Generate JaCoCo Badge
         id: jacoco
@@ -82,7 +82,7 @@ jobs:
         run: |
           mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
             -Dsonar.projectKey=SEU_PROJECT_KEY \
-            -Dsonar.organization=SUA_ORGANIZATION \
+            -Dsonar.organization=rm364347-1 \
             -Dsonar.qualitygate.wait=true
 
   build:
