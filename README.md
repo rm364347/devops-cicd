@@ -1,191 +1,128 @@
-# Projeto Acadêmico DevOps - Pipeline CI/CD com GitHub Actions, Java, Maven e SonarQube
-
-## Objetivo
-Este projeto foi preparado como trabalho acadêmico para demonstrar um pipeline completo de **build, validação de qualidade e deploy** de uma aplicação **Java com Maven**, utilizando **GitHub** como plataforma central do repositório e da automação.
-
-A solução entrega:
-- aplicação Java com front-end
-- pipeline CI/CD no **GitHub Actions**
-- análise de qualidade com **SonarQube**
-- conjunto de testes cobrindo as etapas pedidas no trabalho
-- documentação completa para apresentação acadêmica
-
-## Requisitos atendidos
-- Aplicação com front-end: **sim**
-- Aplicação Java com Maven: **sim**
-- Pipeline com no mínimo 3 steps: **sim**
-- Uso do SonarQube para garantir qualidade: **sim**
-- Uso do GitHub para todo o projeto: **sim**
-- Entregáveis com código completo da aplicação e da automação: **sim**
-
-## Tipos de testes implementados
-O pipeline foi ajustado para executar exatamente os tipos de validação solicitados:
-
-1. **Testes unitários**  
-   Validam regras isoladas da aplicação, como a normalização e a geração da mensagem de retorno.
-
-2. **Smoke tests**  
-   Verificam rapidamente se a aplicação subiu corretamente e se os endpoints principais estão disponíveis.
-
-3. **Testes de integração**  
-   Validam o comportamento da aplicação já inicializada, com requisições HTTP reais para a camada web.
-
-4. **Testes funcionais**  
-   Simulam o fluxo do formulário de deploy para verificar o comportamento esperado do ponto de vista do usuário.
-
-5. **Testes de performance**  
-   Executam uma carga leve com k6 para validar tempo de resposta e taxa de erro.
-
-## Stack utilizada
-- **Java 17**
-- **Spring Boot**
-- **Maven**
-- **Thymeleaf**
-- **JUnit 5 / Spring Test**
-- **JaCoCo**
-- **SonarQube**
-- **Docker**
-- **GitHub Actions**
-- **k6**
-
-## Estrutura de pastas
-```text
+🚀 DevOps CI/CD Pipeline - Java + Maven + GitHub Actions + SonarCloud
+📌 Descrição
+Este projeto tem como objetivo demonstrar a implementação de um pipeline completo de CI/CD (Continuous Integration e Continuous Delivery) utilizando:
+Java (Spring Boot)
+Maven
+GitHub Actions
+SonarCloud
+JaCoCo (cobertura de testes)
+k6 (testes de performance)
+O pipeline automatiza desde o build até o deploy em múltiplos ambientes, garantindo qualidade, rastreabilidade e confiabilidade na entrega de software.
+---
+🏗️ Arquitetura do Pipeline
+Commit → Unit Tests → Code Analysis → Build → Deploy → Testes → Promoção de ambiente
+---
+🔄 Fluxo por ambiente
+Branch	Ambiente	Etapas
+develop	STG	Deploy + Smoke + Integração + Performance
+release	PRE	Deploy + Smoke + Funcional
+main	PRD	Deploy
+---
+⚙️ Tecnologias utilizadas
+Java 17
+Spring Boot
+Maven
+GitHub Actions
+SonarCloud
+JaCoCo
+k6
+Thymeleaf (Front-end)
+---
+📁 Estrutura do projeto
 .
-├── .github/workflows/ci-cd.yml
-├── deploy/docker-compose.yml
-├── scripts/smoke-test.sh
-├── tests/performance/smoke-load.js
-├── src/main/java/com/example/devopspipeline
-├── src/main/resources/templates/index.html
-├── src/main/resources/static/css/style.css
-├── src/test/java/com/example/devopspipeline/service/MessageServiceTest.java
-├── src/test/java/com/example/devopspipeline/controller/WebControllerIT.java
-├── src/test/java/com/example/devopspipeline/controller/DeployFlowFT.java
-├── Dockerfile
-├── Jenkinsfile
-├── docker-compose-sonarqube.yml
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   ├── resources/
+│   │   │   └── templates/
+│   │   └── scripts/
+│   │       ├── deploy-stg.sh
+│   │       ├── deploy-pre.sh
+│   │       ├── deploy-prd.sh
+│   │       ├── smoketest.sh
+│   │       ├── testeIntegrado.sh
+│   │       └── testesFuncionais.sh
+│   └── test/
+├── tests/
+│   └── performance/
+│       └── performance-test.js
 ├── pom.xml
-├── README.md
-└── sonar-project.properties
-```
-
-## Descrição da aplicação
-A aplicação possui uma interface web simples com front-end em Thymeleaf. O usuário informa uma mensagem de deploy e a aplicação retorna um resultado simulando a publicação bem-sucedida. Essa abordagem mantém o projeto simples para fins acadêmicos, mas com uma esteira DevOps completa.
-
-## Pipeline no GitHub Actions
-O pipeline principal está no arquivo:
-```text
-.github/workflows/ci-cd.yml
-```
-
-### Steps do pipeline
-1. **Checkout do código**  
-   Baixa o código do repositório GitHub.
-
-2. **Configuração do Java 17**  
-   Prepara o runner do GitHub Actions para compilar o projeto Maven.
-
-3. **Testes unitários**  
-   Executa os testes com sufixo `*Test`.
-
-4. **Testes de integração**  
-   Executa os testes com sufixo `*IT`.
-
-5. **Testes funcionais**  
-   Executa os testes com sufixo `*FT`.
-
-6. **Build da aplicação**  
-   Gera o JAR da aplicação.
-
-7. **Subida da aplicação para validações adicionais**  
-   Inicializa a aplicação localmente dentro do runner.
-
-8. **Smoke tests**  
-   Valida se a aplicação está no ar e saudável.
-
-9. **Testes de performance**  
-   Executa teste de carga básico com k6.
-
-10. **Análise SonarQube**  
-   Executa a análise estática e de qualidade.
-
-11. **Build da imagem Docker**  
-   Gera a imagem da aplicação.
-
-12. **Deploy acadêmico com Docker**  
-   Sobe o container como demonstração de publicação automatizada.
-
-13. **Smoke pós-deploy**  
-   Confirma se o deploy terminou de forma válida.
-
-## Como executar localmente
-### 1. Rodar testes unitários
-```bash
-mvn -Dtest='*Test' test
-```
-
-### 2. Rodar testes de integração
-```bash
-mvn -Dtest='*IT' test
-```
-
-### 3. Rodar testes funcionais
-```bash
-mvn -Dtest='*FT' test
-```
-
-### 4. Gerar o pacote da aplicação
-```bash
-mvn clean package -DskipTests
-```
-
-### 5. Subir a aplicação
-```bash
-java -jar target/devops-pipeline-1.0.0.jar
-```
-
-### 6. Executar smoke tests
-```bash
-./scripts/smoke-test.sh http://localhost:8080
-```
-
-### 7. Executar testes de performance
-Instale o k6 e rode:
-```bash
-k6 run tests/performance/smoke-load.js -e BASE_URL=http://localhost:8080
-```
-
-## Como usar o SonarQube
-### Subir o SonarQube localmente
-```bash
-docker compose -f docker-compose-sonarqube.yml up -d
-```
-
-### Rodar a análise
-```bash
-mvn verify sonar:sonar \
-  -Dsonar.projectKey=devops-pipeline \
-  -Dsonar.projectName=devops-pipeline \
-  -Dsonar.host.url=http://localhost:9000 \
-  -Dsonar.login=SEU_TOKEN
-```
-
-## Como usar no GitHub
-1. Criar um repositório no GitHub.
-2. Subir todo o conteúdo deste projeto.
-3. Criar os secrets do repositório:
-   - `SONAR_TOKEN`
-   - `SONAR_HOST_URL`
-4. Garantir que a branch principal seja `main`.
-5. Fazer push para disparar o pipeline automaticamente.
-
-## Exemplo de narrativa para apresentação acadêmica
-Este trabalho demonstra como aplicar práticas de DevOps em uma aplicação Java com Maven hospedada no GitHub. A proposta não se limita apenas ao build do sistema. O pipeline foi desenhado para validar a entrega em vários níveis. Primeiro, são executados os testes unitários, de integração e funcionais. Em seguida, a aplicação é iniciada para permitir smoke tests e testes de performance. Depois disso, o código passa pelo SonarQube para assegurar padrões mínimos de qualidade. Somente após essas validações o pipeline gera a imagem Docker e executa o deploy acadêmico automatizado. Dessa forma, o projeto mostra que uma entrega contínua moderna precisa unir automação, testes e governança de qualidade.
-
-## Observações importantes
-- O projeto mantém o arquivo `Jenkinsfile` apenas como referência complementar, mas o pipeline principal do trabalho está no **GitHub Actions**, conforme solicitado.
-- O step de SonarQube no GitHub só roda quando os secrets `SONAR_TOKEN` e `SONAR_HOST_URL` estiverem configurados.
-- O deploy foi modelado para fins acadêmicos, usando Docker no runner do GitHub Actions.
-
-## Conclusão
-Com essa estrutura, o projeto passa a atender o novo escopo solicitado, usando o **GitHub como plataforma central** e incluindo no pipeline os passos de **testes unitários, smoke tests, testes de integração, testes funcionais e testes de performance**, além da análise de qualidade com **SonarQube** e do **deploy automatizado**.
+└── .github/workflows/ci-cd.yml
+---
+🔁 Pipeline (GitHub Actions)
+🧪 1. Unit Test
+Execução de testes unitários
+Geração de cobertura com JaCoCo
+Publicação de relatório de cobertura
+🔍 2. Code Analysis
+Análise estática de código com SonarCloud
+Validação do Quality Gate
+📦 3. Build
+Empacotamento da aplicação
+Geração do artefato `.jar`
+Publicação do artifact no pipeline
+🚀 4. Deploy STG (branch develop)
+Deploy em ambiente de homologação
+🔥 5. Smoke Test
+Validação básica da aplicação (health check)
+🔗 6. Integration Test
+Testes de integração entre componentes
+⚡ 7. Performance Test
+Testes de carga utilizando k6
+🧪 8. Deploy PRE (branch release)
+Deploy em ambiente de pré-produção
+🔥 9. Smoke Test PRE
+Validação do ambiente de pré-produção
+🧪 10. Functional Test
+Testes funcionais de ponta a ponta
+🏁 11. Deploy PRD (branch main)
+Deploy em ambiente de produção
+---
+📊 Qualidade de código (SonarCloud)
+O projeto utiliza o SonarCloud para:
+Análise estática de código
+Identificação de vulnerabilidades
+Cobertura de testes
+Validação de qualidade (Quality Gate)
+---
+🔑 Configuração do SonarCloud
+No GitHub, configure o secret:
+SONAR_TOKEN = <seu_token_sonarcloud>
+---
+🧪 Testes
+✔️ Testes unitários
+mvn test
+🔗 Testes de integração
+mvn -Dtest=*IntegrationTest test
+🧪 Testes funcionais
+mvn -Dtest=*FunctionalTest test
+🔥 Smoke test
+./src/main/scripts/smoketest.sh
+⚡ Testes de performance
+k6 run tests/performance/performance-test.js
+---
+📈 Cobertura de código
+Gerada com JaCoCo:
+mvn verify
+Relatório disponível em:
+target/site/jacoco/index.html
+---
+🚀 Execução local
+Build da aplicação
+mvn clean package
+Execução da aplicação
+java -jar target/*.jar
+Acesso
+http://localhost:8080
+---
+🎯 Objetivo acadêmico
+Este projeto demonstra na prática:
+Integração contínua (CI)
+Entrega contínua (CD)
+Automação de testes
+Controle de qualidade de código
+Deploy por múltiplos ambientes
+Boas práticas DevOps
+---
+👨‍💻 Autor
+Projeto acadêmico desenvolvido para estudo de DevOps e CI/CD.
