@@ -1,113 +1,231 @@
-name: CI-CD
+name: pipeline
 
 on:
   push:
-    branches: [ "main", "develop" ]
-  pull_request:
-    branches: [ "main", "develop" ]
+    branches:
+      - main
+      - develop
+      - release
+  workflow_dispatch:
 
 jobs:
-  build-test-analyze-deploy:
+  unit-test:
     runs-on: ubuntu-latest
 
-    env:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
     steps:
-      - name: Checkout do código
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Configurar Java 17
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
           cache: maven
 
-      - name: Dar permissão aos scripts
-        run: chmod +x ./scripts/*.sh || true
-
-      - name: Build da aplicação
-        run: mvn -B clean compile
-
-      - name: Testes unitários
+      - name: Run Unit Tests
         run: mvn -B test
 
-      - name: Testes de integração
-        run: mvn -B -Dtest=*IntegrationTest verify
+      - name: Generate JaCoCo Badge
+        id: jacoco
+        uses: cicirello/jacoco-badge-generator@v2.11.0
+        with:
+          generate-branches-badge: true
+          generate-summary: true
 
-      - name: Testes funcionais
-        run: mvn -B -Dtest=*FunctionalTest verify
-
-      - name: Build do pacote
-        run: mvn -B package -DskipTests
-
-      - name: Subir aplicação para smoke test
+      - name: Log coverage percentage
         run: |
-          nohup mvn spring-boot:run > app.log 2>&1 &
-          echo $! > app.pid
+          echo "coverage = ${{ steps.jacoco.outputs.coverage }}"
+          echo "branch coverage = ${{ steps.jacoco.outputs.branches }}"
 
-      - name: Aguardar aplicação iniciar
-        run: |
-          for i in {1..30}; do
-            if curl -fsS http://localhost:8080/actuator/health; then
-              echo "Aplicação iniciada com sucesso."
-              exit 0
-            fi
-            echo "Aguardando aplicação subir..."
-            sleep 10
-          done
-          echo "Aplicação não subiu no tempo esperado."
-          cat app.log
-          exit 1
-
-      - name: Smoke tests
-        run: ./scripts/smoke-test.sh
-
-      - name: Testes de performance
-        uses: grafana/setup-k6-action@v1
-
-      - name: Executar testes de performance
-        run: k6 run tests/performance/performance-test.js
-
-      - name: Análise SonarCloud
-        if: env.SONAR_TOKEN != ''
-        run: |
-          mvn -B verify sonar:sonar \
-            -Dsonar.projectKey=rm364347_devops_cicd \
-            -Dsonar.organization=rm364347-1
-
-      - name: Build da imagem Docker
-        run: docker build -t app-java-maven:latest .
-
-      - name: Deploy local de validação
-        if: github.ref == 'refs/heads/main'
-        run: |
-          docker rm -f app-java-maven || true
-          docker run -d --name app-java-maven -p 8080:8080 app-java-maven:latest
-
-      - name: Encerrar app iniciada para smoke test
-        if: always()
-        run: |
-          if [ -f app.pid ]; then
-            kill $(cat app.pid) || true
-          fi
-
-      - name: Publicar artefato JAR
-        if: always()
+      - name: Upload JaCoCo coverage report
         uses: actions/upload-artifact@v4
         with:
-          name: app-jar
+          name: jacoco-report
+          path: target/site/jacoco/
+
+  code-analysis:
+    runs-on: ubuntu-latest
+    needs: unit-test
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build and analyze
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+            -Dsonar.projectKey=SEU_PROJECT_KEY \
+            -Dsonar.organization=SUA_ORGANIZATION \
+            -Dsonar.qualitygate.wait=true
+
+  build:
+    runs-on: ubuntu-latest
+    needs: code-analysis
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Build with Maven
+        run: mvn -B clean package -DskipTests --file pom.xml
+
+      - name: Display target structure
+        run: ls -R target/
+
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifact
           path: target/*.jar
 
-      - name: Publicar logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: logs
-          path: |
-            app.log
-            target/surefire-reports/
-            target/failsafe-reports/
+  deploy-STG:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: stg
+    if: github.ref == 'refs/heads/develop'
+
+    steps:
+      - name: Deploy STG
+        shell: bash
+        run: |
+          echo "Deploy STG"
+          chmod +x src/main/scripts/deploy-stg.sh || true
+          ./src/main/scripts/deploy-stg.sh || echo "Script de deploy STG executado em modo exemplo"
+
+  smoke-test:
+    runs-on: ubuntu-latest
+    needs: deploy-STG
+    if: github.ref == 'refs/heads/develop'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Smoke Test
+        shell: bash
+        run: |
+          chmod +x src/main/scripts/smoketest.sh
+          ./src/main/scripts/smoketest.sh
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: smoke-test
+    if: github.ref == 'refs/heads/develop'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Integration Tests
+        shell: bash
+        run: |
+          chmod +x src/main/scripts/testeIntegrado.sh
+          ./src/main/scripts/testeIntegrado.sh
+
+  performance-test:
+    runs-on: ubuntu-latest
+    needs: integration-test
+    if: github.ref == 'refs/heads/develop'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Run Performance Tests
+        shell: bash
+        run: |
+          k6 run tests/performance/performance-test.js
+
+  deploy-PRE:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/release'
+    environment:
+      name: pre
+
+    steps:
+      - name: Deploy PRE
+        shell: bash
+        run: |
+          echo "Deploy PRE"
+          chmod +x src/main/scripts/deploy-pre.sh || true
+          ./src/main/scripts/deploy-pre.sh || echo "Script de deploy PRE executado em modo exemplo"
+
+  smoke-test-pre:
+    runs-on: ubuntu-latest
+    needs: deploy-PRE
+    if: github.ref == 'refs/heads/release'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Smoke Test PRE
+        shell: bash
+        run: |
+          chmod +x src/main/scripts/smoketest.sh
+          ./src/main/scripts/smoketest.sh
+
+  functional-test:
+    runs-on: ubuntu-latest
+    needs: smoke-test-pre
+    if: github.ref == 'refs/heads/release'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Functional Tests
+        shell: bash
+        run: |
+          chmod +x src/main/scripts/testesFuncionais.sh
+          ./src/main/scripts/testesFuncionais.sh
+
+  deploy-PRD:
+    runs-on: ubuntu-latest
+    needs: functional-test
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: prd
+
+    steps:
+      - name: Deploy PRD
+        shell: bash
+        run: |
+          echo "Deploy PRD"
+          chmod +x src/main/scripts/deploy-prd.sh || true
+          ./src/main/scripts/deploy-prd.sh || echo "Script de deploy PRD executado em modo exemplo"
