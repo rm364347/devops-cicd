@@ -65,7 +65,7 @@ jobs:
           fi
 
       - name: Análise SonarQube
-        if: ${{ secrets.SONAR_TOKEN != '' && secrets.SONAR_HOST_URL != '' }}
+        if: ${{ secrets.SONAR_TOKEN != 'ede1f4d6c5f1233308ff9c74dcafbd0607b33b74' && secrets.SONAR_HOST_URL != 'https://sonarcloud.io' }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
