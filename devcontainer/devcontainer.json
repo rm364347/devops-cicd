@@ -1,0 +1,8 @@
+{
+  "name": "Java 17 DevOps Project",
+  "image": "mcr.microsoft.com/devcontainers/java:1-17-bullseye",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "postCreateCommand": "java -version && mvn -v"
+}S
