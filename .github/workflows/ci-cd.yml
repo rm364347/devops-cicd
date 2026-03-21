@@ -402,8 +402,8 @@ jobs:
       - name: Run Functional Tests
         shell: bash
         run: |
-          chmod +x src/main/scripts/testesFuncionais.sh
-          ./src/main/scripts/testesFuncionais.sh
+          chmod +x scripts/testesFuncionais.sh
+          ./scripts/testesFuncionais.sh
 
       - name: Stop application
         if: always()
