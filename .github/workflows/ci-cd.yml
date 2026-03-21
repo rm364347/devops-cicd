@@ -140,8 +140,8 @@ jobs:
       - name: Run Smoke Test
         shell: bash
         run: |
-          chmod +x src/main/scripts/smoketest.sh
-          ./src/main/scripts/smoketest.sh
+          chmod +x src/main/scripts/smoke-test.sh
+          ./src/main/scripts/smoke-test.sh
 
   integration-test:
     runs-on: ubuntu-latest
