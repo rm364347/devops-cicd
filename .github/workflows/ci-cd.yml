@@ -125,8 +125,8 @@ jobs:
         shell: bash
         run: |
           echo "Deploy STG"
-          chmod +x scripts/deploy-stg.sh || true
-          ./scripts/deploy-stg.sh || echo "Script de deploy STG executado em modo exemplo"
+          chmod +x src/main/scripts/deploy-stg.sh || true
+          ./src/main/scripts/deploy-stg.sh || echo "Script de deploy STG executado em modo exemplo"
 
   smoke-test:
     runs-on: ubuntu-latest
@@ -224,8 +224,15 @@ jobs:
       - name: Run Integration Tests
         shell: bash
         run: |
-          chmod +x src/main/scripts/testeIntegrado.sh
-          ./src/main/scripts/testeIntegrado.sh
+          chmod +x scripts/testeIntegrado.sh
+          ./scripts/testeIntegrado.sh
+
+      - name: Stop application
+        if: always()
+        run: |
+          if [ -f app.pid ]; then
+            kill "$(cat app.pid)" || true
+          fi
 
       - name: Stop application
         if: always()
