@@ -126,8 +126,8 @@ jobs:
         shell: bash
         run: |
           echo "Deploy STG"
-          chmod +x src/main/scripts/deploy-stg.sh || true
-          ./src/main/scripts/deploy-stg.sh || echo "Script de deploy STG executado em modo exemplo"
+          chmod +x scripts/deploy-stg.sh || true
+          ./scripts/deploy-stg.sh || echo "Script de deploy STG executado em modo exemplo"
 
   smoke-test:
     runs-on: ubuntu-latest
