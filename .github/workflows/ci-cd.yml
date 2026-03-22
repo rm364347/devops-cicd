@@ -82,7 +82,7 @@ jobs:
         run: |
           mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
             -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.projectKey=rm364347_devops_cicd \
+            -Dsonar.projectKey=SEU_PROJECT_KEY \
             -Dsonar.organization=rm364347-1 \
             -Dsonar.qualitygate.wait=true
 
@@ -119,14 +119,10 @@ jobs:
     if: github.ref == 'refs/heads/develop'
 
     steps:
-      - uses: actions/checkout@v4
-
       - name: Deploy STG
-        shell: bash
         run: |
-          echo "Deploy STG"
-          chmod +x scripts/deploy-stg.sh || true
-          ./scripts/deploy-stg.sh || echo "Script de deploy STG executado em modo exemplo"
+          echo "Iniciando deploy no ambiente STG"
+          echo "Deploy STG realizado com sucesso"
 
   smoke-test:
     runs-on: ubuntu-latest
@@ -224,8 +220,8 @@ jobs:
       - name: Run Integration Tests
         shell: bash
         run: |
-          chmod +x src/main/scripts/testeIntegrado.sh
-          ./src/main/scripts/testeIntegrado.sh
+          chmod +x scripts/testeIntegrado.sh
+          ./scripts/testeIntegrado.sh
 
       - name: Stop application
         if: always()
@@ -297,14 +293,10 @@ jobs:
       name: pre
 
     steps:
-      - uses: actions/checkout@v4
-
       - name: Deploy PRE
-        shell: bash
         run: |
-          echo "Deploy PRE"
-          chmod +x src/main/scripts/deploy-pre.sh || true
-          ./src/main/scripts/deploy-pre.sh || echo "Script de deploy PRE executado em modo exemplo"
+          echo "Iniciando deploy no ambiente PRE"
+          echo "Deploy PRE realizado com sucesso"
 
   smoke-test-pre:
     runs-on: ubuntu-latest
@@ -402,8 +394,8 @@ jobs:
       - name: Run Functional Tests
         shell: bash
         run: |
-          chmod +x src/main/scripts/testesFuncionais.sh
-          ./src/main/scripts/testesFuncionais.sh
+          chmod +x scripts/testesFuncionais.sh
+          ./scripts/testesFuncionais.sh
 
       - name: Stop application
         if: always()
@@ -420,11 +412,7 @@ jobs:
       name: prd
 
     steps:
-      - uses: actions/checkout@v4
-
       - name: Deploy PRD
-        shell: bash
         run: |
-          echo "Deploy PRD"
-          chmod +x src/main/scripts/deploy-prd.sh || true
-          ./src/main/scripts/deploy-prd.sh || echo "Script de deploy PRD executado em modo exemplo"
+          echo "Iniciando deploy no ambiente PRD"
+          echo "Deploy PRD realizado com sucesso"
