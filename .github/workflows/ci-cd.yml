@@ -82,7 +82,7 @@ jobs:
         run: |
           mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
             -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.projectKey=SEU_PROJECT_KEY \
+            -Dsonar.projectKey=rm364347_devops_cicd \
             -Dsonar.organization=rm364347-1 \
             -Dsonar.qualitygate.wait=true
 
